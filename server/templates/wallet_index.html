@@ -54,14 +54,45 @@
                         }
                     }
                 )
+
+
             })
+
+            function reload_amount() {
+                let data = {
+                    'address': $('#blockchain_address').val()
+                };
+                $.ajax(
+                    {
+                        url: "/wallet/amount",
+                        type: "GET",
+                        data: data,
+                        success: function (response) {
+                            let amount = response['amount'];
+                            $('#Wallet_amount').text(amount);
+                            console.info(amount);
+                        },
+                        error: function (error) {
+                            console.error(error);
+                        }
+                    }
+                )
+            }
+
+            $('#reload_wallet').click(function () {
+                reload_amount();
+            })
+
+            // setInterval(function () {
+            //     reload_amount();
+            // }, 3000);
         })
     </script>
 </head>
 <body>
     <div>
         <h1>Wallet Information</h1>
-        <div id="Wallet_amount"></div>
+        <div id="Wallet_amount">0</div>
         <button id="reload_wallet">Reload Wallet</button>
 
         <p>Public Key:</p>
