@@ -4,12 +4,14 @@ import (
 	"fmt"
 	"log"
 	"strings"
+	"time"
 )
 
 const (
 	MINING_DIFFICULTY = 1
 	MINE_OWNER        = "THE B.C."
 	MINING_REWARD     = 1.0
+	MINING_TIMER_SEC  = 20
 )
 
 func (bc *Blockchain) VaildProof(nonce int, previousHash string, transactions []*Transaction, difficulty int) bool {
@@ -43,10 +45,21 @@ func (bc *Blockchain) ProofOfWork() int {
 }
 
 func (bc *Blockchain) Mining() bool {
+	bc.mux.Lock()
+	defer bc.mux.Unlock()
+	if len(bc.transactionPool) == 0 {
+		return false
+	}
 	bc.AddTransaction(MINE_OWNER, bc.blockchianAddress, MINING_REWARD, nil, nil)
 	nonce := bc.ProofOfWork()
 	previousHash := ByteToString(bc.LastBlock().Hash())
 	bc.CreateBlock(nonce, previousHash)
 	log.Println("action= Mining, status= success, blockchianAddress=", bc.blockchianAddress)
 	return true
+}
+
+func (bc *Blockchain) StratMining() {
+	bc.Mining()
+	_ = time.AfterFunc(MINING_TIMER_SEC*time.Second, bc.StratMining)
+
 }

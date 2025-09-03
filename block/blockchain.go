@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"log"
 	"strings"
+	"sync"
 )
 
 type Blockchain struct {
@@ -15,6 +16,7 @@ type Blockchain struct {
 	chain             []*Block
 	blockchianAddress string
 	port              uint16
+	mux               sync.Mutex
 }
 
 func NewBlockchain(blockchianAddress string, port uint16) *Blockchain {
@@ -96,10 +98,14 @@ func (bc *Blockchain) CopyTransactionPool() []*Transaction {
 	return copiedPool
 }
 
-// func (bc *Blockchain) JoinBlockchain(other *Blockchain) {
-// 	if len(bc.chain) == 0 {
-// 		bc.chain = other.chain
-// 	} else if len(other.chain) > len(bc.chain) {
-// 		bc.chain = other.chain
-// 	}
-// }
+type AmountResponse struct {
+	Amount *float32 `json:"amount"`
+}
+
+func (ar *AmountResponse) MarshalJSON() ([]byte, error) {
+	return json.Marshal(struct {
+		Amount float32 `json:"amount"`
+	}{
+		Amount: *ar.Amount,
+	})
+}

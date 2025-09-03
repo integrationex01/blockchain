@@ -6,6 +6,7 @@ import (
 	"blockchain/wallet"
 	"bytes"
 	"encoding/json"
+	"fmt"
 	"io"
 	"log"
 	"net/http"
@@ -123,10 +124,59 @@ func (ws *WalletServer) CreateTrasaction(w http.ResponseWriter, r *http.Request)
 	}
 }
 
+func (ws *WalletServer) WalletAmount(w http.ResponseWriter, r *http.Request) {
+	switch r.Method {
+	case http.MethodGet:
+		blkchianAddress := r.URL.Query().Get("address")
+		endpoint := fmt.Sprintf("%s/amount", ws.Gateway())
+
+		client := &http.Client{}
+		req, _ := http.NewRequest("GET", endpoint, nil)
+		q := req.URL.Query()
+		q.Add("address", blkchianAddress)
+		req.URL.RawQuery = q.Encode()
+
+		resp, err := client.Do(req)
+		if err != nil {
+			log.Printf("ERR: %s\n", err.Error())
+			io.Writer.Write(w, utils.JsonMessage("Error getting amount"))
+			return
+		}
+		w.Header().Set("Content-Type", "application/json")
+		if resp.StatusCode == 200 {
+			decoder := json.NewDecoder(resp.Body)
+			var ar block.AmountResponse
+			err := decoder.Decode(&ar)
+			if err != nil {
+				log.Printf("ERR: %s\n", err.Error())
+				io.Writer.Write(w, utils.JsonMessage("Error decode for getting amount"))
+				return
+			}
+			m, _ := json.Marshal(struct {
+				Amount  *float32 `json:"amount"`
+				Message string   `json:"message"`
+			}{
+				Amount:  ar.Amount,
+				Message: "Amount fetched successfully",
+			})
+			io.Writer.Write(w, m[:])
+		} else {
+			respBytes, _ := io.ReadAll(resp.Body)
+			io.Writer.Write(w, respBytes)
+			return
+		}
+	default:
+		w.WriteHeader(http.StatusBadRequest)
+		w.Write([]byte("Method not allowed"))
+	}
+
+}
+
 func (ws *WalletServer) Start() {
 	http.HandleFunc("/", ws.Index)
 	http.HandleFunc("/wallet/create", ws.WalletCreate)
 	http.HandleFunc("/transaction", ws.CreateTrasaction)
+	http.HandleFunc("/wallet/amount", ws.WalletAmount)
 	log.Printf("Starting Wallet server at port %d\n", ws.Port())
 	log.Printf("Wallet server Gateway: %s\n", ws.Gateway())
 	log.Printf("Wallet server's filePath %s\n", path.Join(tempDir, "wallet_index.html"))
