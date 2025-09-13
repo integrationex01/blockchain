@@ -9,6 +9,15 @@ import (
 	"log"
 	"strings"
 	"sync"
+	"time"
+)
+
+const (
+	BLOCKCHAIN_PORT_RANGE_START      = 5000
+	BLOCKCHAIN_PORT_RANGE_END        = 5003
+	NEIBOUR_IP_RANGE_START           = 0
+	NEIBOUR_IP_RANGE_END             = 0
+	BLOCKCHIAN_NEIBOUR_SYNC_INTERVAL = 10 // seconds
 )
 
 type Blockchain struct {
@@ -17,6 +26,9 @@ type Blockchain struct {
 	blockchianAddress string
 	port              uint16
 	mux               sync.Mutex
+
+	neibours    []string
+	muxNeibours sync.Mutex
 }
 
 func NewBlockchain(blockchianAddress string, port uint16) *Blockchain {
@@ -26,6 +38,22 @@ func NewBlockchain(blockchianAddress string, port uint16) *Blockchain {
 	bc.blockchianAddress = blockchianAddress
 	bc.port = port
 	return bc
+}
+
+func (bc *Blockchain) SetNeibours() {
+	bc.neibours = utils.FindNeibours(utils.GetHost(), bc.port, BLOCKCHAIN_PORT_RANGE_START, BLOCKCHAIN_PORT_RANGE_END, NEIBOUR_IP_RANGE_START, NEIBOUR_IP_RANGE_END)
+	log.Printf("action= SetNeibours, neibours= %v\n", bc.neibours)
+}
+
+func (bc *Blockchain) SyncNeigbours() {
+	bc.muxNeibours.Lock()
+	defer bc.muxNeibours.Unlock()
+	bc.SetNeibours()
+}
+
+func (bc *Blockchain) StratSyncNeibours() {
+	bc.SyncNeigbours()
+	_ = time.AfterFunc(BLOCKCHIAN_NEIBOUR_SYNC_INTERVAL*time.Second, func() { bc.StratSyncNeibours() })
 }
 
 func (bc *Blockchain) TransactionPool() []*Transaction {

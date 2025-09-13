@@ -170,6 +170,7 @@ func (s *BlockchainServer) Amount(w http.ResponseWriter, r *http.Request) {
 
 func (s *BlockchainServer) Start() {
 	// http.HandleFunc("/", Helloworld)
+	s.GetBlockchain().StratSyncNeibours()
 	http.HandleFunc("/", s.GetChain)
 	http.HandleFunc("/transaction", s.Transaction)
 	http.HandleFunc("/mine", s.Mine)
